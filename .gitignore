@@ -1,0 +1,7 @@
+node_modules/
+dist/
+runs/
+scratch/
+*.png
+!assets/*.png
+.DS_Store

@@ -1,0 +1,2 @@
+# CI smoke: one neutral public page, JS on/off only (no PSI, no Google login)
+Start Page: https://loremipsum.franzai.com/

@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gates-and-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      SEO_TESTS_DECK_SKIP_PSI: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then npx playwright install --with-deps chromium; else npx playwright install chromium; fi
+      - run: npm run gates
+      - run: npm link
+      - name: Smoke - capture JS on/off, build html + pptx, check every slide
+        shell: bash
+        run: |
+          seo-tests-deck capture --pages ci/smoke-pages.txt --out smoke-run --tests js
+          seo-tests-deck findings-template --run smoke-run > smoke-run/findings.json
+          seo-tests-deck build --run smoke-run --out smoke-run/deck --formats html,pptx
+          seo-tests-deck check --deck smoke-run/deck
+          ls -l smoke-run/deck/deck.html smoke-run/deck/deck.pptx smoke-run/deck/check/slide-01.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.os }}
+          path: smoke-run
+          if-no-files-found: ignore
