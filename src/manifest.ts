@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { FailedResource } from './capture/gsc-resources-parse.js';
 
 export interface PsiRun {
   readonly screenshot: string;
@@ -29,6 +30,8 @@ export interface GscResult {
   readonly inspectUrl: string;
   readonly verdict: string;
   readonly resourcesStatus: string;
+  /** Every failed resource of the Page resources panel; absent in manifests from before this field. */
+  readonly failedResources?: readonly FailedResource[];
   /** Google's rendered screenshot itself (the image inside the Screenshot tab). */
   readonly render?: string;
   /** Side by side: real browser (JS on, after consent) vs Google's render - for the review step. */
@@ -136,6 +139,20 @@ function validateJs(js: unknown, index: number): JsResult {
   };
 }
 
+function validateFailedResources(value: unknown, index: number): readonly FailedResource[] {
+  const field = `pages[${index}].gsc.failedResources`;
+  if (!Array.isArray(value)) throw new Error(`${field} must be an array`);
+  return value.map((item: unknown, position) => {
+    if (typeof item !== 'object' || item === null) throw new Error(`${field}[${position}] must be an object`);
+    const record = item as Record<string, unknown>;
+    return {
+      reason: assertString(record['reason'], `${field}[${position}].reason`),
+      type: assertString(record['type'], `${field}[${position}].type`),
+      url: assertString(record['url'], `${field}[${position}].url`)
+    };
+  });
+}
+
 function validateGsc(gsc: unknown, index: number): GscResult {
   if (typeof gsc !== 'object' || gsc === null) {
     throw new Error(`pages[${index}].gsc must be an object`);
@@ -147,6 +164,9 @@ function validateGsc(gsc: unknown, index: number): GscResult {
     inspectUrl: assertString(record['inspectUrl'], `pages[${index}].gsc.inspectUrl`),
     verdict: assertString(record['verdict'], `pages[${index}].gsc.verdict`),
     resourcesStatus: assertString(record['resourcesStatus'], `pages[${index}].gsc.resourcesStatus`),
+    ...(record['failedResources'] === undefined
+      ? {}
+      : { failedResources: validateFailedResources(record['failedResources'], index) }),
     ...(record['render'] === undefined ? {} : { render: assertString(record['render'], `pages[${index}].gsc.render`) }),
     ...(record['renderCompare'] === undefined
       ? {}

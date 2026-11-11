@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Manifest } from './manifest.js';
 
-export type TestStatus = 'ok' | 'not-ok';
+/** "warn" (orange) sits between ok and not-ok: the render is fine but a page resource has "Other error". */
+export type TestStatus = 'ok' | 'warn' | 'not-ok';
 
 export interface TestFinding {
   readonly status: TestStatus;
@@ -40,8 +41,8 @@ function assertString(value: unknown, field: string): string {
 }
 
 function assertStatus(value: unknown, field: string): TestStatus {
-  if (value !== 'ok' && value !== 'not-ok') {
-    throw new Error(`Findings field "${field}" must be "ok" or "not-ok"`);
+  if (value !== 'ok' && value !== 'warn' && value !== 'not-ok') {
+    throw new Error(`Findings field "${field}" must be "ok", "warn" or "not-ok"`);
   }
   return value;
 }

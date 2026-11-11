@@ -1,12 +1,14 @@
 import type { JsFinding, TestFinding, TestStatus } from '../findings.js';
 import type { GscResult, JsResult, PageRun, PsiResult } from '../manifest.js';
 import { LOGO_FILES } from './asset-paths.js';
+import { applyResourceRule } from './gsc-rule.js';
 import { renderNotesBlock } from './notes.js';
 
 const JS_DEFAULT_OK_TEXT = 'no JS rendering dependencies';
 const GSC_DEFAULT_OK_TEXT = 'rendered page shows the main content';
 
-type Border = 'red' | 'green';
+export const WARN_BORDER = '#ff9300';
+type Border = 'red' | 'green' | typeof WARN_BORDER;
 
 function scopeLine(page: PageRun): string {
   return `Scope: ${page.type} ([${page.url}](${page.url}))`;
@@ -21,7 +23,8 @@ export function buildSectionSlide(page: PageRun): string {
 }
 
 function statusBorder(status: TestStatus): Border {
-  return status === 'not-ok' ? 'red' : 'green';
+  if (status === 'not-ok') return 'red';
+  return status === 'warn' ? WARN_BORDER : 'green';
 }
 
 /** PSI passes at a mobile score of 80 or more, unless the review overrides it. */
@@ -74,7 +77,8 @@ export function buildJsSlide(page: PageRun, js: JsResult, finding: JsFinding): s
   ].join('\n\n');
 }
 
-export function buildGscSlide(page: PageRun, gsc: GscResult, finding: TestFinding): string {
+export function buildGscSlide(page: PageRun, gsc: GscResult, reviewed: TestFinding): string {
+  const finding = applyResourceRule(gsc, reviewed);
   return [
     '<!-- _class: scope-shot-notes -->',
     scopeLine(page),

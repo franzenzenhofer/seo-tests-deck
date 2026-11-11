@@ -11,6 +11,29 @@ describe('brandFromOrigin', () => {
   });
 });
 
+describe('gsc.failedResources', () => {
+  it('is validated when present and optional otherwise', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'seo-tests-deck-fr-'));
+    try {
+      const gsc = { screenshot: 's', resources: 'r', inspectUrl: 'u', verdict: 'v', resourcesStatus: '1/2' };
+      const base = { site: { brand: 'b', origin: 'https://b/' }, capturedAt: 'x' };
+      const page = { type: 't', url: 'https://b/', slug: 't' };
+      const write = (g: object): Promise<void> =>
+        writeFile(join(dir, 'manifest.json'), JSON.stringify({ ...base, pages: [{ ...page, gsc: g }] }));
+      await write(gsc);
+      expect((await readManifest(dir)).pages[0]?.gsc?.failedResources).toBeUndefined();
+      await write({ ...gsc, failedResources: [{ reason: 'Other error', type: 'XHR', url: 'https://b/x' }] });
+      expect((await readManifest(dir)).pages[0]?.gsc?.failedResources).toEqual([
+        { reason: 'Other error', type: 'XHR', url: 'https://b/x' }
+      ]);
+      await write({ ...gsc, failedResources: [{ reason: 'Other error', type: 'XHR' }] });
+      await expect(readManifest(dir)).rejects.toThrow(/failedResources\[0\]\.url/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('writeManifest / readManifest', () => {
   let runDir: string;
 

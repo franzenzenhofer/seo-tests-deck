@@ -155,6 +155,12 @@ Rubric (keep the voice: short, lower-case, no full stops):
 - **GSC**: `not-ok` when Google's render shows a cookie banner or overlay instead of content,
   the main content is missing, or render-critical resources of the site itself (JS, CSS, images
   above the fold) are blocked or fail. `ok` -> `IS (ok)` / `rendered page shows the main content`.
+- **GSC page resources rule**: the capture stores every failed resource in `gsc.failedResources`
+  (`[{reason, type, url}]`, from More info -> Page resources). `Googlebot blocked by robots.txt`
+  is fine. Any `Other error` is never ok: with a fine render (`ok`) the builder turns the slide
+  ORANGE (`border=#ff9300`, status `warn`) and appends the SHOULD line `all page resources load -
+  N of M couldn't be loaded with 'Other error'` plus one `<Type> <host+path>` line per resource.
+  Broken render stays red (red wins). The summary slide counts `warn` separately, not as pass.
 - Every `not-ok` JS or GSC finding needs at least one `is` line (the builder refuses otherwise).
   A passing test may also be written as `is: ["OK"]`.
 

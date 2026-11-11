@@ -1,5 +1,6 @@
 import type { Findings, TestStatus } from '../findings.js';
 import type { Manifest, PageRun } from '../manifest.js';
+import { applyResourceRule } from './gsc-rule.js';
 import { PSI_PASS_SCORE, psiStatus } from './slides.js';
 
 /* The at-a-glance slide right after the overview: how many page types pass
@@ -13,8 +14,13 @@ const TESTS: readonly Test[] = ['psi', 'js', 'gsc'];
 function status(page: PageRun, findings: Findings, test: Test): TestStatus | undefined {
   const finding = findings.pages[page.slug]?.[test];
   if (test === 'psi') return page.psi === undefined ? undefined : psiStatus(page.psi, finding);
-  return page[test] === undefined ? undefined : finding?.status;
+  if (page[test] === undefined) return undefined;
+  if (test === 'gsc' && page.gsc !== undefined && finding !== undefined) return applyResourceRule(page.gsc, finding).status;
+  return finding?.status;
 }
+
+/* A warn (orange) is not a pass; a test that was not captured does not fail the page. */
+const isPass = (s: TestStatus | undefined): boolean => s !== 'not-ok' && s !== 'warn';
 
 function psiLine(pages: readonly PageRun[], okCount: number): string {
   const scores = pages.flatMap((page) => (page.psi === undefined ? [] : [page.psi.score]));
@@ -26,11 +32,13 @@ function testLine(manifest: Manifest, findings: Findings, test: Test): string | 
   if (statuses.length === 0) return undefined;
   const okCount = statuses.filter((s) => s === 'ok').length;
   if (test === 'psi') return psiLine(manifest.pages, okCount);
-  return `- **${TEST_LABELS[test]}:** ${okCount} of ${statuses.length} ok`;
+  const warnCount = statuses.filter((s) => s === 'warn').length;
+  const warn = warnCount > 0 ? `, ${warnCount} warn` : '';
+  return `- **${TEST_LABELS[test]}:** ${okCount} of ${statuses.length} ok${warn}`;
 }
 
 function headline(manifest: Manifest, findings: Findings, tests: readonly Test[]): string {
-  const passing = manifest.pages.filter((page) => tests.every((test) => status(page, findings, test) !== 'not-ok')).length;
+  const passing = manifest.pages.filter((page) => tests.every((test) => isPass(status(page, findings, test)))).length;
   const what = tests.length === TESTS.length ? 'all 3 SEO tests' : tests.map((test) => TEST_LABELS[test]).join(' and ');
   return `# ${passing} of ${manifest.pages.length} page types pass ${what}`;
 }

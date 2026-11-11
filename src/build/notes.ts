@@ -6,7 +6,7 @@ import type { TestFinding } from '../findings.js';
  * `findings.ts` already throws if `is` is empty while status is "not-ok".
  */
 export function renderNotesBlock(finding: TestFinding, defaultOkText: string): string {
-  const heading = finding.status === 'ok' ? 'IS (ok)' : 'IS (not ok)';
+  const heading = { ok: 'IS (ok)', warn: 'IS (warning)', 'not-ok': 'IS (not ok)' }[finding.status];
   const isItems = finding.is.length > 0 ? finding.is : [defaultOkText];
 
   const lines = [`- **${heading}**`, ...isItems.map((item) => `- ${item}`)];

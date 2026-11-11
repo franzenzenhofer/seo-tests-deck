@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import type { GscResult } from '../manifest.js';
 import type { PageSpec } from '../pages.js';
 import { newSessionPage, type GoogleSession } from './google-session.js';
+import { readFailedResources } from './gsc-resources.js';
 import { captureResources, mainPanel, saveRender, saveRenderCompare, screenshotLocator, shotPath } from './gsc-shots.js';
 import {
   assertLoggedIn,
@@ -62,6 +63,7 @@ export async function captureGsc(session: GoogleSession, page: PageSpec, runDir:
     const render = shotPath(runDir, page.slug, '-render');
     await saveRender(tab, render);
     await captureResources(tab, shotPath(runDir, page.slug, '-resources'));
+    const failedResources = await readFailedResources(tab);
     const inspectUrl = tab.url();
     const compare = await compareRender(session, { browserShot: options.browserShot, runDir, slug: page.slug, render });
     return {
@@ -70,6 +72,7 @@ export async function captureGsc(session: GoogleSession, page: PageSpec, runDir:
       inspectUrl,
       verdict,
       resourcesStatus,
+      failedResources,
       render: `shots/${page.slug}-gsc-render.png`,
       ...(compare === undefined ? {} : { renderCompare: compare })
     };

@@ -145,6 +145,15 @@ slow live PageSpeed Insights tests. The GSC test runs only with
 `SEO_TESTS_DECK_GSC_PROPERTY=<property>` (and optionally `SEO_TESTS_DECK_GSC_URL`) and a signed-in
 Google session.
 
+## GSC page resources rule
+
+The GSC capture reads the Page resources panel (More info) into `gsc.failedResources`
+(`{reason, type, url}[]`). `Googlebot blocked by robots.txt` is fine; any `Other error` is never
+ok. A fine render with an `Other error` resource gets an orange slide border (`#ff9300`, status
+`warn`) and a generated SHOULD line `all page resources load - N of M couldn't be loaded with
+'Other error'` plus one line per resource. A broken render stays red. The summary slide counts
+`warn` separately and not as pass.
+
 ## License
 
 [MIT](LICENSE)
